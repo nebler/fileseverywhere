@@ -7,6 +7,7 @@ use tokio::{
 };
 
 use super::{
+    encoding::Decoder,
     handshaker::{new_default_handshaker, DefaultHandshaker},
     transport::{Peer, Transport},
 };
@@ -16,6 +17,7 @@ pub struct TcpTransport {
     listener: TcpListener,
     mu: Option<Mutex<TcpPeers>>,
     peers: Option<TcpPeers>,
+    decoder: Option<Box<dyn Decoder + Send + Sync>>,
     handshaker: DefaultHandshaker,
 }
 
@@ -45,6 +47,7 @@ pub async fn new_tcp_transport(listener_adress: &str) -> TcpTransport {
         mu: None,
         peers: None,
         handshaker: new_default_handshaker(),
+        decoder: None,
     };
 }
 
@@ -82,6 +85,10 @@ impl TcpTransport {
             // Try to read data, this may still fail with `WouldBlock`
             // if the readiness event is a false positive.
             loop {
+                self.decoder
+                    .expect("decoder isnt set")
+                    .decode(stream)
+                    .expect("error during decoding");
                 while let Ok(bytes_read) = stream.read(&mut buffer).await {
                     if bytes_read == 0 {
                         // Connection closed by the remote peer
