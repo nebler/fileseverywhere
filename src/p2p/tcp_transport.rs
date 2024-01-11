@@ -85,10 +85,7 @@ impl TcpTransport {
             // Try to read data, this may still fail with `WouldBlock`
             // if the readiness event is a false positive.
             loop {
-                self.decoder
-                    .expect("decoder isnt set")
-                    .decode(stream)
-                    .expect("error during decoding");
+                self.decoder.expect("decoder isnt set").decode(&stream);
                 while let Ok(bytes_read) = stream.read(&mut buffer).await {
                     if bytes_read == 0 {
                         // Connection closed by the remote peer
