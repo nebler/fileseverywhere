@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, io, result::Result, sync::Mutex};
+use std::{collections::HashMap, error::Error, io, rc::Rc, result::Result, sync::Mutex};
 
 use async_trait::async_trait;
 use tokio::{
@@ -17,7 +17,7 @@ pub struct TcpTransport {
     listener: TcpListener,
     mu: Option<Mutex<TcpPeers>>,
     peers: Option<TcpPeers>,
-    decoder: Option<Box<dyn Decoder + Send + Sync>>,
+    decoder: Option<Rc<dyn Decoder + Sync + Send>>,
     handshaker: DefaultHandshaker,
 }
 
@@ -85,7 +85,7 @@ impl TcpTransport {
             // Try to read data, this may still fail with `WouldBlock`
             // if the readiness event is a false positive.
             loop {
-                self.decoder.expect("decoder isnt set").decode(&stream);
+                //self.decoder.expect("decoder isnt set").decode(&stream);
                 while let Ok(bytes_read) = stream.read(&mut buffer).await {
                     if bytes_read == 0 {
                         // Connection closed by the remote peer
