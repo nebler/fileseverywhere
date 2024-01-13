@@ -1,14 +1,9 @@
 mod p2p;
-use crate::p2p::{tcp_transport::*, transport::Transport};
-async fn say_world() {
-    println!("world");
-}
+use p2p::{tcp_transport::new_tcp_transport, transport::Transport};
 
+use crate::p2p::transport;
 #[tokio::main]
 async fn main() {
-    let test_tcp = new_tcp_transport("3000").await;
-    let err = test_tcp.start_accept().await;
-
-    // This println! comes first
-    println!("hello");
+    let tcp = new_tcp_transport("127.0.0.1:3000").await;
+    tcp.start().await;
 }
