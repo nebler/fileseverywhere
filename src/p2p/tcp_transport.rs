@@ -1,10 +1,9 @@
 use async_trait::async_trait;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
 use std::str::from_utf8;
+use tokio::net::{TcpListener, TcpStream};
 
-use super::decoder::Decoder;
-use super::{decoder::DefaultDecoder, message::RPC, transport::Transport};
+use super::decoder::DefaultDecoder;
 
 pub struct TcpPeer {
     conn: TcpStream,
@@ -13,15 +12,14 @@ pub struct TcpPeer {
 
 pub struct TCPTransport {
     listener: TcpListener,
-    decoder: DefaultDecoder,
 }
 
-impl Transport for TCPTransport {
-    fn start(&self) {
-        for connection in self.listener.incoming() {
-            match connection {
-                Ok(mut stream) => {
-                    let decode = self.decoder.decode(&mut stream);
+impl TCPTransport {
+    pub async fn start(&self) {
+        loop {
+            for mut connection in self.listener.accept().await {
+                tokio::spawn(async move {
+                    let decode = DefaultDecoder::decode(&mut connection.0).await;
                     let rpc = decode.expect("oh no");
                     println!("we are done encoding");
                     println!(
@@ -30,20 +28,15 @@ impl Transport for TCPTransport {
                         rpc.stream,
                         from_utf8(&rpc.payload)
                     )
-                }
-                Err(e) => {
-                    // Handle error, e.g., print or log it
-                    eprintln!("Error accepting connection: {}", e);
-                }
+                });
             }
         }
     }
-}
-
-impl TCPTransport {
-    pub fn new_tcp_transport(address: &str) -> Self {
-        let listener = TcpListener::bind(address).expect("Failed to bind to address");
+    pub async fn new_tcp_transport(address: &str) -> Self {
+        let listener = TcpListener::bind(address)
+            .await
+            .expect("Failed to bind to address");
         let decoder = DefaultDecoder {};
-        TCPTransport { listener, decoder }
+        TCPTransport { listener }
     }
 }

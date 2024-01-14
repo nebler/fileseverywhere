@@ -1,7 +1,8 @@
-use p2p::{tcp_transport::TCPTransport, transport::Transport};
+use p2p::tcp_transport::TCPTransport;
 
 mod p2p;
-fn main() {
-    let tcp = TCPTransport::new_tcp_transport("127.0.0.1:3000");
-    let _ = tcp.start();
+#[tokio::main]
+async fn main() {
+    let tcp = TCPTransport::new_tcp_transport("127.0.0.1:3000").await;
+    let _ = tcp.start().await;
 }

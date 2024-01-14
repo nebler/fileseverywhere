@@ -1,23 +1,18 @@
-use std::{
-    io::{self, Read},
-    net::TcpStream,
-};
+use std::io::{self, Read};
+
+use tokio::{io::AsyncReadExt, net::TcpStream};
 
 use super::message::{INCOMING_STREAM, RPC};
 
-pub trait Decoder {
-    fn decode(&self, reader: &mut TcpStream) -> Result<RPC, io::Error>;
-}
-
 pub struct DefaultDecoder;
 
-impl Decoder for DefaultDecoder {
-    fn decode(&self, reader: &mut TcpStream) -> Result<RPC, io::Error> {
+impl DefaultDecoder {
+    pub async fn decode(reader: &mut TcpStream) -> Result<RPC, io::Error> {
         let mut peek_buf = [0; 1];
 
         println!("we are encoding");
         let from = reader.peer_addr().expect("oh wow");
-        if reader.read_exact(&mut peek_buf).is_err() {
+        if reader.read_exact(&mut peek_buf).await.is_err() {
             return Ok(RPC {
                 from: from.to_string(),
                 payload: [].to_vec(),
@@ -36,7 +31,7 @@ impl Decoder for DefaultDecoder {
         }
 
         let mut buf = vec![0; 1028];
-        let n = reader.read(&mut buf)?;
+        let n = reader.read(&mut buf).await?;
         Ok(RPC {
             from: from.to_string(),
             payload: buf[..n].to_vec(),
