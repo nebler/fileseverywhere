@@ -27,7 +27,8 @@ impl TCPTransport {
                         rpc.from,
                         rpc.stream,
                         from_utf8(&rpc.payload)
-                    )
+                    );
+                    println!("test")
                 });
             }
         }
