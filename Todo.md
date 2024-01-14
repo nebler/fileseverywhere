@@ -1,3 +1,5 @@
 -   [ ] Add tests for sockets? Like how do you even test this? Do I need some sort of client function
 -   [ ] Look at async rust? Or do I just use tokio?
+    -   [ ] Do I just need async/await? When do i spawn a new thread?
+    -   [ ] Difference between green thread and normal thread
 -   [ ] Handshake?

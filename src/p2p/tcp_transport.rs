@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::str::from_utf8;
 
 use super::decoder::Decoder;
-use super::message;
 use super::{decoder::DefaultDecoder, message::RPC, transport::Transport};
 
 pub struct TcpPeer {
@@ -16,23 +16,20 @@ pub struct TCPTransport {
     decoder: DefaultDecoder,
 }
 
-pub fn new_tcp_transport(address: &str) -> TCPTransport {
-    let listener = TcpListener::bind(address).expect("Failed to bind to address");
-    let decoder = DefaultDecoder {};
-    TCPTransport { listener, decoder }
-}
-
 impl Transport for TCPTransport {
     fn start(&self) {
         for connection in self.listener.incoming() {
             match connection {
-                Ok(stream) => {
-                    let message = RPC {
-                        from: todo!(),
-                        payload: todo!(),
-                        stream: todo!(),
-                    };
-                    let decode = self.decoder.decode(&mut connection.unwrap(), &mut message);
+                Ok(mut stream) => {
+                    let decode = self.decoder.decode(&mut stream);
+                    let rpc = decode.expect("oh no");
+                    println!("we are done encoding");
+                    println!(
+                        "this is the rpc: from {} stream: {} payload: {:?}",
+                        rpc.from,
+                        rpc.stream,
+                        from_utf8(&rpc.payload)
+                    )
                 }
                 Err(e) => {
                     // Handle error, e.g., print or log it
@@ -40,5 +37,13 @@ impl Transport for TCPTransport {
                 }
             }
         }
+    }
+}
+
+impl TCPTransport {
+    pub fn new_tcp_transport(address: &str) -> Self {
+        let listener = TcpListener::bind(address).expect("Failed to bind to address");
+        let decoder = DefaultDecoder {};
+        TCPTransport { listener, decoder }
     }
 }
