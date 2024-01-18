@@ -3,3 +3,4 @@
     -   [ ] Do I just need async/await? When do i spawn a new thread?
     -   [ ] Difference between green thread and normal thread
 -   [ ] Handshake?
+-   [ ] The functions with their parameters still feel weird since now the class is empty (always passing around the listener?)

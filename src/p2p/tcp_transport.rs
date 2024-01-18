@@ -17,15 +17,19 @@ impl TCPTransport {
         loop {
             println!("heyyyy");
             for connection in listener.accept().await {
-                Self::handle_connection(connection.0).await;
+                Self::handle_connection(connection.0, false).await;
             }
         }
     }
 
-    async fn handle_connection(mut connection: TcpStream) {
+    async fn handle_connection(mut connection: TcpStream, outbound: bool) -> Result<(), Error> {
         tokio::spawn(async move {
-            let decode = DefaultDecoder::decode(&mut connection).await;
-            let rpc = decode.expect("oh no");
+            let decoded = DefaultDecoder::decode(&mut connection).await;
+            let peer = TcpPeer {
+                conn: connection,
+                outbound: outbound,
+            };
+            let rpc = decoded.expect("oh no");
             println!("we are done encoding");
             println!(
                 "this is the rpc: from {} stream: {} payload: {:?}",
@@ -33,8 +37,13 @@ impl TCPTransport {
                 rpc.stream,
                 from_utf8(&rpc.payload)
             );
-            println!("test5")
+
+            if (rpc.stream) {
+                println!("hellooo")
+            }
+            println!("test5");
         });
+        Ok(())
     }
     pub async fn tcp_transport(address: &str) -> Result<(), Error> {
         let tcp_transport = TCPTransport {};
@@ -45,9 +54,15 @@ impl TCPTransport {
         Ok(())
     }
 
+    pub async fn close(listener: TcpListener) -> Result<(), Error> {
+        //is this good practice
+        drop(listener);
+        Ok(())
+    }
+
     pub async fn dial(address: &str) -> Result<(), Error> {
         let connection = TcpStream::connect(&address).await?;
-        Self::handle_connection(connection).await;
+        Self::handle_connection(connection, true).await;
         Ok(())
     }
 }
