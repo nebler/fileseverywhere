@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use std::io::{Read, Write};
+use std::io::{Error, Read, Write};
 use std::str::from_utf8;
 use tokio::net::{TcpListener, TcpStream};
 
@@ -10,34 +10,44 @@ pub struct TcpPeer {
     outbound: bool,
 }
 
-pub struct TCPTransport {
-    listener: TcpListener,
-}
+pub struct TCPTransport {}
 
 impl TCPTransport {
-    pub async fn start(&self) {
+    pub async fn start(&self, listener: TcpListener) {
         loop {
-            for mut connection in self.listener.accept().await {
-                tokio::spawn(async move {
-                    let decode = DefaultDecoder::decode(&mut connection.0).await;
-                    let rpc = decode.expect("oh no");
-                    println!("we are done encoding");
-                    println!(
-                        "this is the rpc: from {} stream: {} payload: {:?}",
-                        rpc.from,
-                        rpc.stream,
-                        from_utf8(&rpc.payload)
-                    );
-                    println!("test5")
-                });
+            println!("heyyyy");
+            for connection in listener.accept().await {
+                Self::handle_connection(connection.0).await;
             }
         }
     }
-    pub async fn new_tcp_transport(address: &str) -> Self {
+
+    async fn handle_connection(mut connection: TcpStream) {
+        tokio::spawn(async move {
+            let decode = DefaultDecoder::decode(&mut connection).await;
+            let rpc = decode.expect("oh no");
+            println!("we are done encoding");
+            println!(
+                "this is the rpc: from {} stream: {} payload: {:?}",
+                rpc.from,
+                rpc.stream,
+                from_utf8(&rpc.payload)
+            );
+            println!("test5")
+        });
+    }
+    pub async fn tcp_transport(address: &str) -> Result<(), Error> {
+        let tcp_transport = TCPTransport {};
         let listener = TcpListener::bind(address)
             .await
             .expect("Failed to bind to address");
-        let decoder = DefaultDecoder {};
-        TCPTransport { listener }
+        tcp_transport.start(listener).await;
+        Ok(())
+    }
+
+    pub async fn dial(address: &str) -> Result<(), Error> {
+        let connection = TcpStream::connect(&address).await?;
+        Self::handle_connection(connection).await;
+        Ok(())
     }
 }
