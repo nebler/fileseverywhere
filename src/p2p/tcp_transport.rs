@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use std::io::{Error, Read, Write};
 use std::str::from_utf8;
+use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 
 use super::decoder::DefaultDecoder;
@@ -10,13 +11,15 @@ pub struct TcpPeer {
     outbound: bool,
 }
 
-pub struct TCPTransport {}
+pub struct TCPTransport {
+    listener: TcpListener,
+}
 
 impl TCPTransport {
-    pub async fn start(&self, listener: TcpListener) {
+    async fn start(&self) {
         loop {
             println!("heyyyy");
-            for connection in listener.accept().await {
+            for connection in self.listener.accept().await {
                 Self::handle_connection(connection.0, false).await;
             }
         }
@@ -45,22 +48,20 @@ impl TCPTransport {
         });
         Ok(())
     }
-    pub async fn tcp_transport(address: &str) -> Result<(), Error> {
-        let tcp_transport = TCPTransport {};
+    pub async fn tcp_transport(address: &str) -> TCPTransport {
         let listener = TcpListener::bind(address)
             .await
             .expect("Failed to bind to address");
-        tcp_transport.start(listener).await;
-        Ok(())
+        let tcp_transport = TCPTransport { listener };
+        tcp_transport
     }
 
-    pub async fn close(listener: TcpListener) -> Result<(), Error> {
+    pub async fn close(&self) {
         //is this good practice
-        drop(listener);
-        Ok(())
+        self.listener.shutdown();
     }
 
-    pub async fn dial(address: &str) -> Result<(), Error> {
+    pub async fn dial(&self, address: &str) -> Result<(), Error> {
         let connection = TcpStream::connect(&address).await?;
         Self::handle_connection(connection, true).await;
         Ok(())

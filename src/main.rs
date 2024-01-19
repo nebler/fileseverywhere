@@ -1,6 +1,7 @@
 use futures::{future::TryFutureExt, try_join};
 use p2p::tcp_transport::TCPTransport;
 mod p2p;
+mod server;
 #[tokio::main]
 async fn main() {
     let tcp = TCPTransport::tcp_transport("127.0.0.1:3000");
