@@ -1,10 +1,8 @@
-use async_trait::async_trait;
-use std::io::{Error, Read, Write};
-use std::str::from_utf8;
-use tokio::io::AsyncWriteExt;
+use std::{fmt::Error, str::from_utf8};
+
 use tokio::net::{TcpListener, TcpStream};
 
-use super::decoder::DefaultDecoder;
+use crate::p2p::decoder::DefaultDecoder;
 
 pub struct TcpPeer {
     conn: TcpStream,
@@ -13,6 +11,7 @@ pub struct TcpPeer {
 
 pub struct TCPTransport {
     listener: TcpListener,
+    peers: Vec<TcpPeer>,
 }
 
 impl TCPTransport {
@@ -20,18 +19,18 @@ impl TCPTransport {
         loop {
             println!("heyyyy");
             for connection in self.listener.accept().await {
-                Self::handle_connection(connection.0, false).await;
+                self.handle_connection(connection.0, false).await;
             }
         }
     }
 
-    async fn handle_connection(mut connection: TcpStream, outbound: bool) -> Result<(), Error> {
+    async fn handle_connection(
+        &self,
+        mut connection: TcpStream,
+        outbound: bool,
+    ) -> Result<(), Error> {
         tokio::spawn(async move {
             let decoded = DefaultDecoder::decode(&mut connection).await;
-            let peer = TcpPeer {
-                conn: connection,
-                outbound: outbound,
-            };
             let rpc = decoded.expect("oh no");
             println!("we are done encoding");
             println!(
@@ -42,28 +41,36 @@ impl TCPTransport {
             );
 
             if (rpc.stream) {
-                println!("hellooo")
+                println!("we are streaming boys")
             }
-            println!("test5");
+            let peer = TcpPeer {
+                conn: connection,
+                outbound: outbound,
+            };
+
+            // todo: I need a way to access self.peers from this thread now so i can put the peers inside there without the compiler
+            // screaming at me
         });
-        Ok(())
+        return Ok(());
     }
     pub async fn tcp_transport(address: &str) -> TCPTransport {
         let listener = TcpListener::bind(address)
             .await
             .expect("Failed to bind to address");
-        let tcp_transport = TCPTransport { listener };
+        let tcp_transport = TCPTransport {
+            listener,
+            peers: Vec::new(),
+        };
         tcp_transport
     }
 
     pub async fn close(&self) {
-        //is this good practice
-        self.listener.shutdown();
+        //is this good practice?
     }
 
     pub async fn dial(&self, address: &str) -> Result<(), Error> {
         let connection = TcpStream::connect(&address).await?;
-        Self::handle_connection(connection, true).await;
+        self.handle_connection(connection, true).await;
         Ok(())
     }
 }
